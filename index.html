@@ -257,7 +257,7 @@ function goalRect(){
  const portrait=H>W*1.15,baseline=H*.46;
  let gw=portrait?Math.min(W*.88,W-24):Math.min(W*.68,W-32);
  // Avoid a stretched, oversized goal on short landscape windows while preserving the 7.32m : 2.44m ratio.
- const minTop=H<500?Math.min(42,H*.12):Math.min(58,H*.09);
+ const minTop=H<500?Math.min(H<430?50:60,H*.15):Math.min(58,H*.09);
  gw=Math.min(gw,Math.max(150,(baseline-minTop)*3.05));
  const gh=gw/3.05,gy=baseline-gh;
  return{x:(W-gw)/2,y:gy,w:gw,h:gh}
@@ -1167,6 +1167,7 @@ const retryTournamentBeforeV6=retryTournament;
 retryTournament=function(){tournamentBracketStateV6=null;window.__wcpsBracketDataV6=null;retryTournamentBeforeV6()};
 
 paintUtilityIconsV5();setLang(language);
+try{window.__WCPS={get game(){return game},get W(){return W},get H(){return H},get mode(){return sceneMode},goalRect:goalRect,ballSpot:ballSpot}}catch(_){}
 })();
 </script>
 <style>
@@ -1883,4 +1884,310 @@ body[data-screen="game"] #langBtn{display:none!important}
   #game .hero-tag { max-width: min(190px, calc(100vw - 24px)); padding: 7px 9px; }
 }
 </style>
+<style id="wcps-v7-responsive-hud-fx">
+/* =====================================================================
+   v7 — HUD adattivo (verticale / orizzontale / schermo intero / notch),
+   niente selezione o cursore di scrittura, più grafica e animazioni.
+   Blocco in coda: sovrascrive soltanto, il resto del codice resta intatto.
+   ===================================================================== */
+:root{--sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--edge:10px;--btn:34px;--sb-h:44px;--hud-top:calc(var(--sat) + var(--edge));--hud-left:calc(var(--sal) + var(--edge));--hud-right:calc(var(--sar) + var(--edge));--hud-row2:calc(var(--hud-top) + var(--btn) + 6px)}
+
+/* ---------- 1. Niente selezione, niente cursore di scrittura ---------- */
+html,body{overscroll-behavior:none;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;caret-color:transparent}
+input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;caret-color:var(--gold)}
+::selection{background:transparent;color:inherit}
+input::selection{background:rgba(88,189,255,.38)}
+:focus:not(:focus-visible){outline:none}
+img,svg,canvas,a{-webkit-user-drag:none;user-drag:none}
+
+/* punteggio: il numero riempie tutta l'altezza della scheda (prima restava in alto) */
+body #game .score-stack{justify-content:stretch}
+body #game .score-stack .score-num{flex:1 1 auto!important;height:auto}
+
+/* ---------- 2. L'app occupa sempre esattamente lo schermo ---------- */
+/* prima: min-height:540px => sui telefoni larghi >900px e bassi il gioco era più alto dello schermo */
+#app{position:fixed!important;inset:0;height:auto!important;min-height:0!important}
+
+/* pulsanti Abbandona/Pausa sempre sopra il punteggio */
+body #gameActions.game-actions{z-index:60!important}
+body #game .game-top{z-index:30}
+
+/* =====================================================================
+   3. TELEFONO / TABLET IN VERTICALE
+   ===================================================================== */
+@media (orientation:portrait) and (max-width:900px){
+ :root{--edge:10px;--btn:clamp(34px,5vw,42px);--sb-h:clamp(44px,7vw,54px)}
+ body[data-screen="game"] .topbar{padding:var(--hud-top) var(--hud-right) 0 var(--hud-left)!important;background:none!important;align-items:flex-start!important}
+ body[data-screen="game"] .top-controls{display:flex!important;gap:6px!important;margin:0!important}
+ body[data-screen="game"] .topbar .top-controls{position:absolute!important;top:var(--hud-top)!important;right:var(--hud-right)!important;left:auto!important}
+ body[data-screen="game"] .topbar .icon-btn{width:var(--btn)!important;height:var(--btn)!important;border-radius:11px!important}
+ body #gameActions.game-actions{left:var(--hud-left)!important;top:var(--hud-top)!important;gap:6px!important;max-width:calc(100vw - var(--hud-left) - var(--hud-right) - var(--btn)*2 - 16px)!important}
+ body #gameActions .back-game,body #gameActions #quitGameBtn,body #gameActions #pauseGameBtn{min-height:var(--btn)!important;height:var(--btn)!important;padding:0 11px!important;font-size:clamp(8px,2.3vw,10px)!important;border-radius:11px!important}
+ body #game .game-top{top:var(--hud-row2)!important;left:var(--hud-left)!important;right:auto!important;width:min(calc(100vw - var(--hud-left) - var(--hud-right)),330px)!important;display:flex!important;flex-direction:column!important;gap:4px!important}
+ body #game .scoreboard{display:flex!important;width:100%!important;height:var(--sb-h)!important;min-height:0!important;border-radius:13px!important}
+ body #game .score-team{padding:0 8px!important;gap:6px!important}
+ body #game .score-team .score-flag{font-size:clamp(15px,4.4vw,21px)!important}
+ body #game .score-team .score-name{font-size:clamp(8px,2.3vw,10px)!important;max-width:none!important}
+ body #game .score-team .score-kicks{margin-top:3px!important;gap:2px!important}
+ body #game .score-kick{width:clamp(7px,2vw,11px)!important;height:3px!important}
+ body #game .score-num{min-width:clamp(26px,7vw,38px)!important;font-size:clamp(18px,5.4vw,26px)!important;padding:0 2px!important}
+ body #game .match-stage{display:flex!important;width:fit-content!important;max-width:100%!important;align-self:flex-start;padding:3px 10px!important;border-radius:999px!important;gap:9px!important}
+ body #game .match-stage small{font-size:7px!important}
+ body #game .match-stage strong{font-size:8px!important}
+ /* banner: sotto la linea di porta, centrato, mai sopra i pulsanti */
+ body #game .turn-banner{top:calc(46% + 12px)!important;left:0!important;right:0!important;margin:0 auto!important;transform:none!important;width:min(calc(100vw - 24px),390px)!important;text-align:center!important;padding:0!important}
+ body #game .turn-banner h3{font-size:clamp(15px,4.6vw,22px)!important;margin-top:0!important}
+ body #game .turn-banner p{margin:4px auto 0!important;max-width:34ch!important;font-size:clamp(9px,2.6vw,11px)!important}
+ body #game .turn-banner #opponentHint{margin:6px auto 0!important}
+ body #game .hero-tag{left:var(--hud-left)!important;right:auto!important;top:calc(var(--hud-row2) + var(--sb-h) + 34px)!important;max-width:min(62vw,250px)!important}
+ body #game .mini-toast:not(.cinematic){top:calc(var(--hud-row2) + var(--sb-h) + 82px)!important}
+ body #game .mini-toast.cinematic{top:36%!important}
+ body #game .game-bottom{justify-content:center!important;gap:0!important;padding:0 var(--hud-right) calc(var(--sab) + 10px) var(--hud-left)!important;background:linear-gradient(0deg,rgba(2,9,16,.72),transparent)!important}
+ body #game .power-card{flex:0 1 auto!important;width:min(100%,380px)!important;min-width:0!important;max-width:none!important;padding:8px 12px 7px!important;border-radius:12px!important}
+ body #game .power-row{font-size:8px!important;margin-bottom:6px!important}
+ body #game .power-track{height:7px!important}
+ body #game .power-hint{font-size:8px!important;margin-top:5px!important;max-width:none!important}
+}
+
+/* =====================================================================
+   4. TELEFONO IN ORIZZONTALE (qualsiasi larghezza, schermo intero incluso)
+   Si ragiona sull'ALTEZZA: sotto i 540px lo spazio verticale è prezioso.
+   Riga unica in alto: [Abbandona][Pausa]   [punteggio]   [schermo intero][audio]
+   ===================================================================== */
+@media (orientation:landscape) and (max-height:540px){
+ :root{--edge:8px;--btn:32px;--sb-h:34px}
+ body[data-screen="game"] .topbar{padding:var(--hud-top) var(--hud-right) 0 var(--hud-left)!important;background:none!important;align-items:flex-start!important}
+ body[data-screen="game"] .top-controls{display:flex!important;gap:5px!important;margin:0!important}
+ body[data-screen="game"] .topbar .top-controls{position:absolute!important;top:var(--hud-top)!important;right:var(--hud-right)!important;left:auto!important}
+ body[data-screen="game"] .topbar .icon-btn{width:var(--btn)!important;height:var(--btn)!important;border-radius:10px!important}
+ body[data-screen="game"] #fullscreenBtn svg,body[data-screen="game"] #audioIcon svg{width:17px!important;height:17px!important}
+ body #gameActions.game-actions{left:var(--hud-left)!important;top:var(--hud-top)!important;gap:5px!important;max-width:none!important}
+ body #gameActions .back-game,body #gameActions #quitGameBtn,body #gameActions #pauseGameBtn{min-height:var(--btn)!important;height:var(--btn)!important;padding:0 10px!important;font-size:8px!important;border-radius:10px!important;gap:5px!important}
+ body #gameActions #pauseGameBtn{padding:0!important;width:var(--btn)!important}
+ body #gameActions #pauseGameBtn span:last-child{display:none!important}
+ body #gameActions #quitGameBtn .quit-button-icon{font-size:14px!important}
+ /* punteggio: al centro della stessa riga dei pulsanti */
+ body #game .game-top{top:var(--hud-top)!important;left:0!important;right:0!important;margin:0 auto!important;width:min(300px,calc(100vw - 2*(var(--hud-left) + 152px)))!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:3px!important}
+ body #game .scoreboard{display:flex!important;width:100%!important;height:var(--sb-h)!important;min-height:0!important;border-radius:11px!important;box-shadow:0 6px 16px #0005,inset 0 1px #ffffff13!important}
+ body #game .score-team{padding:0 6px!important;gap:5px!important}
+ body #game .score-team .score-flag{font-size:15px!important}
+ body #game .score-team .score-name{font-size:8px!important;max-width:none!important;letter-spacing:.05em!important}
+ body #game .score-team .score-kicks{margin-top:2px!important;gap:2px!important}
+ body #game .score-kick{width:7px!important;height:3px!important}
+ body #game .score-num{min-width:25px!important;font-size:18px!important;padding:0 2px!important}
+ body #game .match-stage{display:none!important}
+ /* banner: a destra, sotto la linea di porta, sull'erba libera */
+ body #game .turn-banner{top:calc(46% + 10px)!important;left:auto!important;right:var(--hud-right)!important;margin:0!important;transform:none!important;width:min(36vw,290px)!important;text-align:right!important;padding:0!important}
+ body #game .turn-banner h3{font-size:clamp(13px,3.6vh,17px)!important;margin-top:0!important}
+ body #game .turn-banner p{margin:3px 0 0 auto!important;max-width:30ch!important;font-size:9px!important;line-height:1.3!important}
+ body #game .turn-banner #opponentHint{display:none!important}
+ body #game .hero-tag{left:auto!important;right:var(--hud-right)!important;top:calc(46% + 70px)!important;max-width:min(36vw,230px)!important;padding:6px 9px!important}
+ body #game .mini-toast:not(.cinematic){top:calc(var(--hud-top) + var(--sb-h) + 6px)!important}
+ body #game .mini-toast.cinematic{top:30%!important}
+ body #game .game-bottom{justify-content:flex-start!important;gap:0!important;padding:0 var(--hud-right) calc(var(--sab) + 8px) var(--hud-left)!important;background:linear-gradient(0deg,rgba(2,9,16,.5),transparent)!important}
+ body #game .power-card{flex:0 0 auto!important;width:min(210px,27vw)!important;min-width:150px!important;max-width:none!important;padding:6px 10px!important;border-radius:11px!important}
+ body #game .power-row{font-size:7px!important;margin-bottom:4px!important}
+ body #game .power-row strong{font-size:9px!important}
+ body #game .power-track{height:6px!important}
+ body #game .power-hint{display:none!important}
+}
+/* altezza 460–540: c'è posto per il nome del turno sotto il punteggio */
+@media (orientation:landscape) and (min-height:460px) and (max-height:540px){
+ body #game .match-stage{display:flex!important;width:fit-content!important;align-self:center;padding:2px 10px!important;border-radius:999px!important;gap:8px!important}
+ body #game .match-stage small{font-size:6px!important}
+ body #game .match-stage strong{font-size:7px!important}
+}
+/* telefoni molto stretti in orizzontale: Abbandona diventa solo icona */
+@media (orientation:landscape) and (max-height:540px) and (max-width:560px){
+ body #gameActions #quitGameBtn [data-i18n]{display:none!important}
+ body #gameActions #quitGameBtn{padding:0!important;width:var(--btn)!important}
+ body #game .game-top{width:min(300px,calc(100vw - 2*(var(--hud-left) + 80px)))!important}
+}
+
+/* =====================================================================
+   5. GRAFICA E ANIMAZIONI EXTRA (solo effetti, nessuna logica)
+   ===================================================================== */
+#fxLayer{position:fixed;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+.wcps-lights{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .9s ease}
+body[data-screen="game"] .wcps-lights,body[data-screen="result"] .wcps-lights,body[data-screen="home"] .wcps-lights{opacity:1}
+.wcps-lights i{position:absolute;top:-14vmax;width:46vmax;height:46vmax;border-radius:50%;background:radial-gradient(circle,rgba(255,246,220,.2),rgba(255,246,220,.07) 38%,transparent 66%);mix-blend-mode:screen;will-change:transform,opacity;animation:wcpsFlood 9s ease-in-out infinite alternate}
+.wcps-lights i:nth-child(1){left:-15vmax}
+.wcps-lights i:nth-child(2){right:-15vmax;animation-duration:11.5s;animation-delay:-4s}
+@keyframes wcpsFlood{from{transform:translate3d(0,0,0) scale(.92);opacity:.55}to{transform:translate3d(2vmax,1.6vmax,0) scale(1.07);opacity:1}}
+
+/* scoreboard: riflesso dorato che scorre e punteggio che "salta" ai gol */
+#game .scoreboard{position:relative}
+#game .scoreboard:after{content:"";position:absolute;left:0;right:0;top:0;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(247,201,105,.9),transparent);transform:translateX(-100%);animation:wcpsSheen 5.5s ease-in-out infinite}
+@keyframes wcpsSheen{0%,68%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+#game .score-num.pop{animation:wcpsScorePop .7s cubic-bezier(.2,.9,.25,1.3)}
+@keyframes wcpsScorePop{0%{transform:scale(1);color:#fff;text-shadow:none}30%{transform:scale(1.5);color:#ffe7a0;text-shadow:0 0 18px rgba(247,201,105,.95)}100%{transform:scale(1);color:#fff;text-shadow:none}}
+
+/* banner del turno: entra con un piccolo rimbalzo quando cambia */
+#game .turn-banner.swap h3,#game .turn-banner.swap p{animation:wcpsBannerIn .55s cubic-bezier(.2,.9,.25,1.2) both}
+#game .turn-banner.swap p{animation-delay:.07s}
+@keyframes wcpsBannerIn{from{opacity:0;transform:translateY(10px) scale(.96);filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+
+/* barra potenza: riflesso che corre + scheda che si accende mentre carichi */
+#game .power-fill{position:relative;overflow:hidden}
+#game .power-fill:after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 25%,rgba(255,255,255,.65) 50%,transparent 75%);transform:translateX(-120%);animation:wcpsPower 1s linear infinite}
+@keyframes wcpsPower{to{transform:translateX(120%)}}
+#game .power-card{transition:border-color .2s,box-shadow .25s,transform .2s}
+body.is-charging #game .power-card{border-color:rgba(247,201,105,.62)!important;box-shadow:0 0 calc(14px + 22px*var(--charge,0)) rgba(247,201,105,calc(.18 + .3*var(--charge,0))),0 12px 28px #0004!important;transform:translateY(-2px)}
+
+/* tag giocatore chiave e toast: luce che pulsa */
+#game .hero-tag.show{box-shadow:0 0 22px rgba(247,201,105,.22),0 8px 22px #0004;animation:heroRevealSafe .35s var(--ease) both,wcpsHeroGlow 2.4s ease-in-out .4s infinite!important}
+@keyframes wcpsHeroGlow{50%{box-shadow:0 0 30px rgba(247,201,105,.42),0 8px 22px #0004}}
+
+/* scossone di camera su gol e palo (solo canvas dello stadio) */
+body.fx-shake #scene{animation:wcpsShake .46s cubic-bezier(.36,.07,.19,.97)}
+@keyframes wcpsShake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(3px,1px,0)}30%,50%,70%{transform:translate3d(-5px,-1px,0)}40%,60%{transform:translate3d(5px,1px,0)}}
+body.fx-shake-soft #scene{animation:wcpsShakeSoft .3s ease-out}
+@keyframes wcpsShakeSoft{25%{transform:translate3d(-2px,1px,0)}60%{transform:translate3d(2px,-1px,0)}}
+
+/* menu: bottone principale respira, icona risultato fluttua */
+#playBtn:not(.menu-bump){animation:wcpsCta 3s ease-in-out infinite}
+@keyframes wcpsCta{50%{box-shadow:0 8px 27px #d49c3c35,inset 0 1px #fff9,0 0 34px rgba(247,201,105,.38)}}
+#resultIcon{animation:wcpsBob 3.2s ease-in-out infinite}
+@keyframes wcpsBob{50%{transform:translateY(-6px) scale(1.04)}}
+
+@media (prefers-reduced-motion:reduce){
+ .wcps-lights i,#game .scoreboard:after,#game .power-fill:after,#playBtn,#resultIcon,#game .hero-tag.show{animation:none!important}
+ body.fx-shake #scene,body.fx-shake-soft #scene{animation:none!important}
+ #fxLayer{display:none}
+}
+</style>
+<script id="wcps-v7-fx">
+/* v7 — blocco selezione/cursore + effetti grafici. Script separato: legge soltanto lo stato
+   del gioco tramite window.__WCPS (sola lettura) e disegna su un canvas sovrapposto. */
+(()=>{'use strict';
+const $=s=>document.querySelector(s);
+const isField=t=>!!(t&&t.closest&&t.closest('input,textarea,[contenteditable="true"]'));
+
+/* ---------- 1. Nessuna selezione, nessun menu, nessun cursore di scrittura ---------- */
+const stop=e=>{if(!isField(e.target))e.preventDefault()};
+['selectstart','dragstart','copy','cut','contextmenu'].forEach(n=>document.addEventListener(n,stop,{capture:true}));
+['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('selectionchange',()=>{const s=window.getSelection&&getSelection();if(s&&s.rangeCount&&!isField(document.activeElement))s.removeAllRanges()});
+document.addEventListener('pointerdown',e=>{const a=document.activeElement;if(a&&isField(a)&&!isField(e.target))a.blur()},true);
+const pauseBtn=$('#pauseGameBtn');if(pauseBtn&&!pauseBtn.getAttribute('aria-label'))pauseBtn.setAttribute('aria-label','Pausa');
+
+/* ---------- 2. Piccole animazioni dell'interfaccia ---------- */
+const pop=(el,cls)=>{if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove(cls),900)};
+['#homeScore','#awayScore'].forEach(sel=>{const el=$(sel);if(!el)return;let last=el.textContent;new MutationObserver(()=>{const now=el.textContent;if(now!==last){const up=(+now)>(+last);last=now;if(up)pop(el,'pop')}}).observe(el,{childList:true,characterData:true,subtree:true})});
+const headline=$('#turnHeadline'),banner=$('#game .turn-banner');
+if(headline&&banner)new MutationObserver(()=>pop(banner,'swap')).observe(headline,{childList:true,characterData:true,subtree:true});
+const fill=$('#powerFill');
+if(fill)new MutationObserver(()=>{const w=Math.max(0,Math.min(100,parseFloat(fill.style.width)||0));document.body.classList.toggle('is-charging',w>1);document.body.style.setProperty('--charge',(w/100).toFixed(3))}).observe(fill,{attributes:true,attributeFilter:['style']});
+
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce)return; // niente effetti se l'utente li ha disattivati
+
+/* ---------- 3. Luci dello stadio (CSS) + canvas effetti ---------- */
+const lights=document.createElement('div');lights.className='wcps-lights';lights.setAttribute('aria-hidden','true');lights.innerHTML='<i></i><i></i>';
+const fx=document.createElement('canvas');fx.id='fxLayer';fx.setAttribute('aria-hidden','true');
+const app=$('#app');app.parentNode.insertBefore(lights,app);app.parentNode.insertBefore(fx,app);
+const c=fx.getContext('2d');let W=0,H=0,DPR=1;
+const size=()=>{DPR=Math.min(window.devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;fx.width=Math.floor(W*DPR);fx.height=Math.floor(H*DPR);c.setTransform(DPR,0,0,DPR,0,0)};
+addEventListener('resize',size,{passive:true});size();
+
+const TAU=Math.PI*2,rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const PALETTE=['#f7c969','#ffe7a0','#83f4cc','#58bdff','#ff4c61','#ffffff'];
+const parts=[],flashes=[],trail=[],motes=[];
+const MAX=260,k=()=>clamp(Math.min(W,H)/520,.62,1.25);
+
+function add(p){if(parts.length<MAX)parts.push(p)}
+function confetti(x,y,n,ang,spread,speed){for(let i=0;i<n;i++){const a=ang+rnd(-spread,spread),s=rnd(.45,1)*speed*k();add({t:'c',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:820*k(),drag:.35,life:rnd(1.6,2.6),max:2.6,w:rnd(5,9)*k(),h:rnd(3,5)*k(),rot:rnd(0,TAU),vr:rnd(-9,9),col:PALETTE[(Math.random()*PALETTE.length)|0],fl:rnd(0,TAU)})}}
+function sparks(x,y,n,speed,cols,g){for(let i=0;i<n;i++){const a=rnd(0,TAU),s=rnd(.25,1)*speed*k();add({t:'s',x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:g==null?380*k():g,drag:1.6,life:rnd(.35,.8),max:.8,r:rnd(1.2,2.8)*k(),col:cols[(Math.random()*cols.length)|0]})}}
+function flash(x,y,r,col,dur){flashes.push({x,y,r,col,t:0,dur:dur||.7})}
+function glint(x,y,s){add({t:'g',x,y,vx:0,vy:0,g:0,drag:0,life:.16,max:.16,r:s,col:'#ffffff'})}
+const shake=(soft)=>{const cl=soft?'fx-shake-soft':'fx-shake',b=document.body;b.classList.remove('fx-shake','fx-shake-soft');void b.offsetWidth;b.classList.add(cl);clearTimeout(shake._t);shake._t=setTimeout(()=>b.classList.remove(cl),soft?320:480)};
+
+/* ---------- 4. Stato osservato dal gioco ---------- */
+let lastImpact=null,lastMode='',crowdBoost=0,rainUntil=0,lastT=performance.now(),flashAcc=0,rainAcc=0,chargeAcc=0;
+const api=()=>window.__WCPS;
+
+function onOutcome(s,g){
+ const gr=api().goalRect(),res=s.result,ex=s.end&&s.end.x,ey=s.end&&s.end.y;if(ex==null)return;
+ if(res==='goal'){
+  confetti(gr.x+gr.w*.04,gr.y+gr.h*.35,34,-Math.PI*.36,.5,720);
+  confetti(gr.x+gr.w*.96,gr.y+gr.h*.35,34,-Math.PI*.64,.5,720);
+  sparks(ex,ey,38,360,['#fff2bd','#f7c969','#ffffff'],260);
+  flash(ex,ey,Math.max(gr.w*.75,160),'255,214,120',.8);
+  flash(W/2,H*.46,Math.max(W,H)*.7,'255,226,150',.55);
+  crowdBoost=2.4;shake(false);
+ }else if(res==='save'){
+  sparks(ex,ey,24,300,['#caffec','#ffffff','#58bdff'],200);flash(ex,ey,gr.w*.35,'160,240,255',.5);shake(true);
+ }else if(res==='post'){
+  sparks(ex,ey,34,420,['#fff2bd','#ffe7a0','#ffffff'],520);flash(ex,ey,gr.w*.3,'255,238,170',.45);shake(true);
+ }else{
+  sparks(ex,ey,10,160,['#9fb2c4','#ffffff'],300);
+ }
+}
+
+/* stessa traiettoria usata dal gioco per disegnare la palla in volo */
+function ballPos(s,Hh){const p=clamp(s.progress,0,1);if(p<.28)return null;const f=clamp((p-.28)/.72,0,1),ease=1-Math.pow(1-f,2.35);
+ const x=lerp(s.start.x,s.end.x,ease),baseY=lerp(s.start.y,s.end.y,ease),arc=Math.sin(f*Math.PI)*Math.min(Hh*.15,104)*(.36+clamp(s.charge,0,1)*.3);
+ return{x,y:baseY-arc,r:lerp(s.start.r,s.start.r*.37,ease)}}
+
+function spawnAmbient(dt,a,mode){
+ if(mode==='game'){
+  const gr=a.goalRect(),rate=(W<700?3:6)+(crowdBoost>0?34:0);flashAcc+=dt*rate;
+  while(flashAcc>=1){flashAcc-=1;glint(rnd(W*.03,W*.97),rnd(Math.max(H*.06,gr.y-gr.h*.7),gr.y+gr.h*.22),rnd(4,8)*k())}
+  const g=a.game;
+  if(g&&g.charging&&g.turn==='player'){ // scintille che si raccolgono attorno alla palla mentre carichi
+   const sp=a.ballSpot(),ch=clamp(g.charge||0,0,1);chargeAcc+=dt*(26+ch*60);
+   while(chargeAcc>=1){chargeAcc-=1;const ang=rnd(0,TAU),R=sp.r*rnd(2.2,3.6),col=`hsl(${Math.round(150-150*ch)} 95% 68%)`;
+    add({t:'s',x:sp.x+Math.cos(ang)*R,y:sp.y+Math.sin(ang)*R*.55,vx:-Math.cos(ang)*R*2.1,vy:-Math.sin(ang)*R*1.2,g:0,drag:0,life:.42,max:.42,r:rnd(1.2,2.4)*k(),col})}
+  }
+ }
+ if(performance.now()<rainUntil){rainAcc+=dt*(W<700?26:44);while(rainAcc>=1){rainAcc-=1;
+  add({t:'c',x:rnd(0,W),y:-12,vx:rnd(-40,40),vy:rnd(80,200),g:260*k(),drag:.5,life:rnd(2.4,3.6),max:3.6,w:rnd(5,9)*k(),h:rnd(3,5)*k(),rot:rnd(0,TAU),vr:rnd(-8,8),col:PALETTE[(Math.random()*PALETTE.length)|0],fl:rnd(0,TAU)})}}
+}
+
+function ensureMotes(){if(motes.length)return;const n=W<700?16:28;for(let i=0;i<n;i++)motes.push({x:rnd(0,W),y:rnd(0,H),r:rnd(1.2,3),s:rnd(6,18),ph:rnd(0,TAU),a:rnd(.1,.34)})}
+
+function frame(now){
+ requestAnimationFrame(frame);
+ if(document.hidden){lastT=now;return}
+ const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
+ const a=api();if(!a){return}
+ const mode=a.mode,g=a.game;
+ /* eventi */
+ if(mode!==lastMode){
+  if(mode==='result'&&g&&g.matchResult==='win')rainUntil=now+(g.finalWin?7000:2400);
+  lastMode=mode;
+ }
+ if(g&&g.impactShot&&g.impactShot!==lastImpact&&g.impactShot.result){lastImpact=g.impactShot;try{onOutcome(g.impactShot,g)}catch(e){}}
+  crowdBoost=Math.max(0,crowdBoost-dt);
+ /* scia della palla */
+ if(mode==='game'&&g&&g.shot){try{const bp=ballPos(g.shot,a.H);if(bp)trail.push({x:bp.x,y:bp.y,r:bp.r,t:now})}catch(e){}}
+ while(trail.length&&now-trail[0].t>320)trail.shift();
+ spawnAmbient(dt,a,mode);
+ /* disegno */
+ const live=parts.length||flashes.length||trail.length||mode==='home';
+ if(!live){if(frame.dirty){c.clearRect(0,0,W,H);frame.dirty=false}return}
+ frame.dirty=true;c.clearRect(0,0,W,H);
+ /* polvere dorata nel menu */
+ if(mode==='home'){ensureMotes();c.globalCompositeOperation='lighter';for(const m of motes){m.y-=m.s*dt;m.ph+=dt*.8;m.x+=Math.sin(m.ph)*8*dt;if(m.y<-8){m.y=H+8;m.x=rnd(0,W)}
+  const g2=c.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r*4);g2.addColorStop(0,`rgba(255,226,150,${m.a})`);g2.addColorStop(1,'rgba(255,226,150,0)');c.fillStyle=g2;c.beginPath();c.arc(m.x,m.y,m.r*4,0,TAU);c.fill()}}
+ /* lampi (flash di gol/parata) */
+ c.globalCompositeOperation='lighter';
+ for(let i=flashes.length-1;i>=0;i--){const f=flashes[i];f.t+=dt;const p=f.t/f.dur;if(p>=1){flashes.splice(i,1);continue}
+  const al=(1-p)*(1-p)*.55,r=f.r*(.55+p*.6),gr=c.createRadialGradient(f.x,f.y,0,f.x,f.y,r);gr.addColorStop(0,`rgba(${f.col},${al})`);gr.addColorStop(1,`rgba(${f.col},0)`);c.fillStyle=gr;c.beginPath();c.arc(f.x,f.y,r,0,TAU);c.fill()}
+ /* scia */
+ if(trail.length>1){for(let i=1;i<trail.length;i++){const p0=trail[i-1],p1=trail[i],age=clamp((now-p1.t)/320,0,1),al=(1-age)*.55;
+  c.strokeStyle=`rgba(255,236,170,${al})`;c.lineWidth=Math.max(1,p1.r*1.5*(1-age));c.lineCap='round';c.beginPath();c.moveTo(p0.x,p0.y);c.lineTo(p1.x,p1.y);c.stroke()}}
+ /* particelle */
+ for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life-=dt;if(p.life<=0||p.y>H+40){parts.splice(i,1);continue}
+  const d=Math.exp(-p.drag*dt);p.vx*=d;p.vy=p.vy*d+p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
+  const al=clamp(p.life/(p.max*.35),0,1);
+  if(p.t==='c'){c.globalCompositeOperation='source-over';p.rot+=p.vr*dt;p.fl+=dt*7;c.save();c.globalAlpha=al;c.translate(p.x,p.y);c.rotate(p.rot);c.scale(1,Math.max(.12,Math.abs(Math.cos(p.fl))));c.fillStyle=p.col;c.fillRect(-p.w/2,-p.h/2,p.w,p.h);c.restore()}
+  else if(p.t==='s'){c.globalCompositeOperation='lighter';c.globalAlpha=al;c.strokeStyle=p.col;c.lineWidth=p.r;c.lineCap='round';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(p.x-p.vx*.035,p.y-p.vy*.035);c.stroke();c.globalAlpha=1}
+  else{c.globalCompositeOperation='lighter';const q=p.life/p.max,r=p.r*(.4+q);c.globalAlpha=q;c.strokeStyle='#fff';c.lineWidth=1.2;c.beginPath();c.moveTo(p.x-r,p.y);c.lineTo(p.x+r,p.y);c.moveTo(p.x,p.y-r);c.lineTo(p.x,p.y+r);c.stroke();c.fillStyle='#fff';c.beginPath();c.arc(p.x,p.y,r*.22,0,TAU);c.fill();c.globalAlpha=1}}
+ c.globalCompositeOperation='source-over';c.globalAlpha=1;
+}
+requestAnimationFrame(frame);
+})();
+</script>
 </body></html>
